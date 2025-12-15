@@ -26,15 +26,21 @@ class AIChatView(APIView):
         user_id = request.data.get("user_id")
         messages = request.data.get("messages", [])
         
+        # Validate messages
         if not messages:
             return Response({"detail": "messages array is required"}, status=400)
         
         if not isinstance(messages, list):
             return Response({"detail": "messages must be an array"}, status=400)
-
-        profile = UserProfile.objects.filter(user_id=user_id).select_related("location").first()
-        if not profile:
-            return Response({"detail": "user_id missing or not found"}, status=400)
+        
+        # Validate message format
+        for msg in messages:
+            if not isinstance(msg, dict):
+                return Response({"detail": "Each message must be an object"}, status=400)
+            if "role" not in msg or "content" not in msg:
+                return Response({"detail": "Each message must have 'role' and 'content' fields"}, status=400)
+            if not isinstance(msg.get("content"), str) or not msg.get("content").strip():
+                return Response({"detail": "Message content must be a non-empty string"}, status=400)
 
         if not os.getenv("OPENAI_API_KEY"):
             return Response(
@@ -42,8 +48,30 @@ class AIChatView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        # Build context from user's current system state
-        context = self._build_context(profile)
+        # Try to get profile, but use default context if not found
+        profile = None
+        if user_id:
+            try:
+                # Convert user_id to int if it's a string
+                user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+                profile = UserProfile.objects.filter(user_id=user_id_int).select_related("location").first()
+            except (ValueError, TypeError):
+                # If user_id can't be converted, just skip profile lookup
+                profile = None
+        
+        # Build context from user's current system state, or use defaults
+        if profile:
+            context = self._build_context(profile)
+        else:
+            # Use default context if no profile found
+            context = {
+                "available_liters": 0,
+                "daily_demand_liters": 0,
+                "storage_capacity": 0,
+                "climate_info": "Not available",
+                "user_type": "farmer",
+                "location": "Unknown",
+            }
 
         planner = AIPlannerService()
         try:

@@ -5,4 +5,5 @@ python-dotenv>=1.0
 dj-database-url>=2.2
 openai>=1.40
 psycopg2-binary>=2.9
+paho-mqtt>=1.6
 

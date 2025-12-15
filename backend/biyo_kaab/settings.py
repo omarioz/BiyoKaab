@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "water",
+    "biyokaab",
 ]
 
 MIDDLEWARE = [
@@ -58,10 +59,16 @@ TEMPLATES = [
 WSGI_APPLICATION = "biyo_kaab.wsgi.application"
 ASGI_APPLICATION = "biyo_kaab.asgi.application"
 
-db_url = os.getenv("DATABASE_URL")
-if db_url:
+# Use SQLite for development by default
+# Comment out DATABASE_URL in .env to use SQLite, or set it to a valid PostgreSQL connection
+db_url = os.getenv("DATABASE_URL", "").strip()
+# Force SQLite for development - uncomment below to use PostgreSQL
+USE_POSTGRES = os.getenv("USE_POSTGRES", "false").lower() == "true"
+
+if USE_POSTGRES and db_url and "postgres" in db_url.lower():
     DATABASES = {"default": dj_database_url.config(default=db_url, conn_max_age=600)}
 else:
+    # Default to SQLite for development
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",

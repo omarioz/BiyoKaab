@@ -11,7 +11,8 @@ const quickPrompts = [
 ];
 
 // Default user_id - in production, this should come from authentication
-const DEFAULT_USER_ID = '1';
+// Test user created: username='testuser', user_id=2
+const DEFAULT_USER_ID = '2';
 
 const formatTime = (date = new Date()) => {
   const now = new Date();
@@ -51,7 +52,8 @@ export const BiyokaabAi = () => {
   }, [messages, isTyping]);
 
   const sendMessage = async (textOverride) => {
-    const text = (textOverride ?? input).trim();
+    // Get text from override parameter or input state, ensuring it's a string
+    const text = String(textOverride || input || '').trim();
     if (!text) return;
     
     const userMessage = {
@@ -61,7 +63,7 @@ export const BiyokaabAi = () => {
       time: formatTime(),
     };
     
-    // Update state with user message and build messages array for API
+    // Build the complete messages array BEFORE updating state to avoid closure issues
     let openaiMessages = [];
     setMessages((prev) => {
       const updatedMessages = [...prev, userMessage];
@@ -83,6 +85,11 @@ export const BiyokaabAi = () => {
     setIsTyping(true);
 
     try {
+      // Ensure messages array is not empty before sending
+      if (!openaiMessages || openaiMessages.length === 0) {
+        throw new Error('No messages to send');
+      }
+      
       const result = await sendChatMessage(DEFAULT_USER_ID, openaiMessages);
       
       if (result.success) {
@@ -249,7 +256,7 @@ export const BiyokaabAi = () => {
                 placeholder="Ask Biyokaab AI anything about water usage, schedules, or sensors..."
                 className="w-full min-h-[72px] rounded-2xl border border-gray-200 bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-biyokaab-blue"
               />
-              <Button onClick={sendMessage} className="h-[72px] px-4">
+              <Button onClick={() => sendMessage()} className="h-[72px] px-4">
                 Send
               </Button>
             </div>

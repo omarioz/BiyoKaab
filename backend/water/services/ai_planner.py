@@ -142,5 +142,13 @@ Current system context:
             temperature=0.7,
             max_tokens=1000,
         )
-        return completion.choices[0].message.content
+        
+        if not completion.choices or len(completion.choices) == 0:
+            raise ValueError("OpenAI API returned no choices")
+        
+        response_content = completion.choices[0].message.content
+        if not response_content:
+            raise ValueError("OpenAI API returned empty response")
+        
+        return response_content
 
