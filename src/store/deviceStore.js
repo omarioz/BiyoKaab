@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { mockApi } from '../api/mockApi';
+import { api } from '../api/api';
 
 /**
  * Zustand store for device data and sensor readings
@@ -48,12 +49,29 @@ export const useDeviceStore = create((set, get) => ({
 
   fetchDeviceStatus: async (deviceId) => {
     try {
-      const response = await mockApi.getDeviceStatus(deviceId);
+      // Try real API first, fallback to mock if it fails
+      const response = await api.getDeviceStatus(deviceId);
       if (response.success) {
         set({ deviceStatus: response.data });
+      } else {
+        // Fallback to mock API if real API fails
+        console.warn('Real API failed, using mock data:', response.error);
+        const mockResponse = await mockApi.getDeviceStatus(deviceId);
+        if (mockResponse.success) {
+          set({ deviceStatus: mockResponse.data });
+        }
       }
     } catch (error) {
-      set({ error: error.message });
+      console.error('Error fetching device status:', error);
+      // Fallback to mock API on error
+      try {
+        const mockResponse = await mockApi.getDeviceStatus(deviceId);
+        if (mockResponse.success) {
+          set({ deviceStatus: mockResponse.data });
+        }
+      } catch (mockError) {
+        set({ error: error.message });
+      }
     }
   },
 

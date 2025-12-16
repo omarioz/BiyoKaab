@@ -30,6 +30,7 @@ export const mockDeviceStatus = {
   water_volume_l: 123.4,
   tank_capacity_l: 200,
   percent_full: 61.7,
+  distance_cm: 38.3, // Added for testing
   humidity_percent: 82.1,
   temperature_c: 18.7,
   days_until_expected_rain: 5,
@@ -188,6 +189,7 @@ export const mockWeatherForecast = {
     precipitation_7day: [0, 0, 0, 0, 0, 2.5, 5.0], // mm per day
   },
 };
+
 
 
 

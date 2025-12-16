@@ -48,3 +48,7 @@ export const CurrentValuesCard = ({ temp, humidity, soilMoisture, dripIrrigation
 };
 
 
+
+
+
+

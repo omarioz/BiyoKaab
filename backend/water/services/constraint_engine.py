@@ -39,3 +39,7 @@ class ConstraintEngine:
             return "high" if days_of_supply < 5 else "moderate"
         return "low"
 
+
+
+
+

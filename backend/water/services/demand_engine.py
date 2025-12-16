@@ -15,3 +15,7 @@ class DemandEngine:
         total = sum(totals.values())
         return {"totals": {k: float(v) for k, v in totals.items()}, "total_daily_liters": float(total)}
 
+
+
+
+

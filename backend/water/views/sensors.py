@@ -24,3 +24,7 @@ class SensorHistoryView(APIView):
         data = SensorReadingSerializer(readings, many=True).data
         return Response({"device_id": device_id, "readings": data})
 
+
+
+
+

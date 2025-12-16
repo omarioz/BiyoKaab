@@ -24,7 +24,6 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "water",
-    "biyokaab",
 ]
 
 MIDDLEWARE = [

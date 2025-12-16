@@ -14,3 +14,7 @@ export const IconBattery = ({ className = "w-5 h-5", percent = 100, ...props }) 
 
 
 
+
+
+
+

@@ -17,3 +17,7 @@ export const IconThermometer = ({ className = "w-5 h-5", ...props }) => (
 
 
 
+
+
+
+

@@ -6,3 +6,7 @@ class WaterConfig(AppConfig):
     name = "water"
     verbose_name = "Water & Sensor Management"
 
+
+
+
+

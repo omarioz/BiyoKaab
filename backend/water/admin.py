@@ -36,8 +36,10 @@ class SensorAdmin(admin.ModelAdmin):
 
 @admin.register(models.SensorReading)
 class SensorReadingAdmin(admin.ModelAdmin):
-    list_display = ("sensor", "recorded_at", "water_level", "humidity", "temperature")
+    list_display = ("sensor", "recorded_at", "distance_cm", "water_level", "humidity", "temperature")
     list_filter = ("sensor",)
+    search_fields = ("sensor__device_id",)
+    ordering = ("-recorded_at",)
 
 
 @admin.register(models.WaterDemandUnit)
@@ -56,4 +58,5 @@ class ClimateSnapshotAdmin(admin.ModelAdmin):
 class WaterPlanAdmin(admin.ModelAdmin):
     list_display = ("owner", "status", "date_start", "date_end", "created_at")
     list_filter = ("status",)
+
 

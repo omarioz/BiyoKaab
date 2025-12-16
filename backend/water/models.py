@@ -52,7 +52,7 @@ class WaterStorage(models.Model):
 
 
 class Sensor(models.Model):
-    system = models.ForeignKey(WaterSystem, on_delete=models.CASCADE, related_name="sensors")
+    system = models.ForeignKey(WaterSystem, on_delete=models.CASCADE, related_name="sensors", null=True, blank=True, help_text="Optional: can be auto-created from MQTT without system")
     device_id = models.CharField(max_length=64, unique=True)
     description = models.CharField(max_length=255, blank=True)
 
@@ -63,6 +63,7 @@ class Sensor(models.Model):
 class SensorReading(models.Model):
     sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name="readings")
     recorded_at = models.DateTimeField(auto_now_add=True)
+    distance_cm = models.FloatField(null=True, blank=True, help_text="Distance from sensor to water surface in cm")
     water_level = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     humidity = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)

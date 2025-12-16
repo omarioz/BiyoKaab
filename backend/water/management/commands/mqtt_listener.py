@@ -7,11 +7,14 @@ This command:
 - Connects to Mosquitto MQTT broker (localhost:1883)
 - Subscribes to biyokaab/+/telemetry topics
 - Receives JSON sensor data
-- Saves it to Django database using SensorReading model
+- Saves it to Django database using water.SensorReading model
+- Auto-creates Sensor if it doesn't exist
 """
 import json
 import logging
+import traceback
 from django.core.management.base import BaseCommand
+from django.db import transaction, close_old_connections
 
 try:
     import paho.mqtt.client as mqtt
@@ -20,7 +23,7 @@ except ImportError:
     MQTT_AVAILABLE = False
     mqtt = None
 
-from biyokaab.models import SensorReading
+from water.models import Sensor, SensorReading
 
 
 logger = logging.getLogger(__name__)
@@ -150,6 +153,9 @@ class Command(BaseCommand):
             userdata: Private user data
             msg: The message object with topic, payload, qos, retain
         """
+        # Close old database connections to prevent issues in long-running processes
+        close_old_connections()
+        
         try:
             # Decode message payload
             payload_str = msg.payload.decode("utf-8")
@@ -208,36 +214,100 @@ class Command(BaseCommand):
                 )
                 return
 
-            # Save to database using Django ORM
+            # Get or create Sensor for this device_id
+            # Auto-create if it doesn't exist (system can be None)
             try:
-                sensor_reading = SensorReading.objects.create(
+                sensor, created = Sensor.objects.get_or_create(
                     device_id=device_id,
-                    distance_cm=distance_cm,
-                    water_level=water_level,
-                    humidity=humidity,
-                    temperature=temperature,
+                    defaults={
+                        "system": None,
+                        "description": f"Auto-created from MQTT on {msg.topic}",
+                    }
                 )
-
-                # Build success message with available fields
-                fields_info = f"distance_cm={distance_cm}"
-                if water_level is not None:
-                    fields_info += f", water_level={water_level}"
-                if humidity is not None:
-                    fields_info += f", humidity={humidity}"
-                if temperature is not None:
-                    fields_info += f", temperature={temperature}"
-
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"✓ Saved sensor reading: {sensor_reading.device_id} "
-                        f"({fields_info})"
+                if created:
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Created new sensor: {device_id}")
+                    )
+                else:
+                    self.stdout.write(
+                        f"Using existing sensor: {device_id} (ID: {sensor.id})"
+                    )
+            except Exception as e:
+                error_traceback = traceback.format_exc()
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"Error getting/creating sensor for {device_id}: {e}\n"
+                        f"Traceback:\n{error_traceback}"
                     )
                 )
+                return
+
+            # Save to database using Django ORM
+            # For now, only store distance_cm. Water level calculation will be done later.
+            try:
+                from decimal import Decimal
+                from django.db import transaction
+
+                self.stdout.write(
+                    f"Attempting to save reading for sensor ID: {sensor.id}, device_id: {device_id}"
+                )
+
+                # Only convert optional fields if they're provided in the message
+                # For now, focus on storing distance_cm only
+                water_level_decimal = None
+                if water_level is not None:
+                    water_level_decimal = Decimal(str(water_level))
+
+                humidity_decimal = None
+                if humidity is not None:
+                    humidity_decimal = Decimal(str(humidity))
+
+                temperature_decimal = None
+                if temperature is not None:
+                    temperature_decimal = Decimal(str(temperature))
+
+                # Use transaction to ensure data is saved
+                with transaction.atomic():
+                    sensor_reading = SensorReading.objects.create(
+                        sensor=sensor,
+                        distance_cm=distance_cm,  # Primary field - always saved
+                        water_level=water_level_decimal,  # Optional - only if in message
+                        humidity=humidity_decimal,  # Optional - only if in message
+                        temperature=temperature_decimal,  # Optional - only if in message
+                    )
+
+                # Verify the reading was created
+                if sensor_reading.id:
+                    # Build success message with available fields
+                    fields_info = f"distance_cm={distance_cm}"
+                    if water_level is not None:
+                        fields_info += f", water_level={water_level}"
+                    if humidity is not None:
+                        fields_info += f", humidity={humidity}"
+                    if temperature is not None:
+                        fields_info += f", temperature={temperature}"
+
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"✓ Saved sensor reading ID {sensor_reading.id} for {sensor.device_id} "
+                            f"(distance_cm={distance_cm})"
+                        )
+                    )
+                else:
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"Failed to save sensor reading: No ID returned\n"
+                            f"Device ID: {device_id}"
+                        )
+                    )
             except Exception as e:
+                # Print full traceback for debugging
+                error_traceback = traceback.format_exc()
                 self.stderr.write(
                     self.style.ERROR(
                         f"Error saving sensor reading to database: {e}\n"
-                        f"Device ID: {device_id}"
+                        f"Device ID: {device_id}\n"
+                        f"Traceback:\n{error_traceback}"
                     )
                 )
 

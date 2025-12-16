@@ -21,6 +21,7 @@ export const Dashboard = () => {
     forecast,
     dateRange,
     fetchTimeSeries,
+    fetchDeviceStatus,
     setDateRange,
   } = useDeviceStore();
 
@@ -36,6 +37,21 @@ export const Dashboard = () => {
       fetchTimeSeries(currentDeviceId, dateRange);
     }
   }, [currentDeviceId, dateRange, fetchTimeSeries]);
+
+  // Auto-refresh device status every 5 seconds to see distance_cm updates
+  useEffect(() => {
+    if (currentDeviceId) {
+      // Fetch immediately
+      fetchDeviceStatus(currentDeviceId);
+      
+      // Then refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchDeviceStatus(currentDeviceId);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentDeviceId, fetchDeviceStatus]);
 
   if (!deviceStatus) {
     return (

@@ -59,6 +59,7 @@ class SensorReadingSerializer(serializers.ModelSerializer):
             "id",
             "sensor",
             "recorded_at",
+            "distance_cm",
             "water_level",
             "humidity",
             "temperature",
@@ -97,4 +98,5 @@ class WaterPlanSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["status", "created_at"]
+
 
